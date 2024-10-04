@@ -1,5 +1,5 @@
 trigger:
-- siva
+- main
 
 pool:
   name: rakesh

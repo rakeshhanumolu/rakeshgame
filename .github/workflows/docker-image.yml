@@ -1,0 +1,54 @@
+trigger:
+- siva
+
+pool:
+  name: rakesh
+
+steps:
+  - task: Maven@4
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: 'test package'
+      publishJUnitResults: true
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      javaHomeOption: 'JDKVersion'
+      mavenVersionOption: 'Default'
+
+  - script: |
+      echo "Listing the build directory contents..."
+      ls -R $(Agent.BuildDirectory)
+    displayName: 'List build directory contents'
+
+  - task: CmdLine@2
+    inputs:
+      script: |
+        # Ensure the version.txt file exists; if not, create it with a default version
+        if [ ! -f version.txt ]; then
+            echo "1.0.1" > version.txt
+        fi
+
+        # Read the current version from version.txt
+        VERSION_NUMBER=$(cat version.txt)
+        
+        # Increment the patch version
+        IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
+        patch=$((patch + 1))
+        NEW_VERSION="${major}.${minor}.${patch}"
+        
+        # Save the new version back to version.txt
+        echo $NEW_VERSION > version.txt
+        
+        # Use the new version for Docker tagging
+        echo "Using version: $NEW_VERSION"
+
+      # Set AWS environment variables
+        export AWS_ACCESS_KEY_ID=$(AKIASK5MCSSVTKMLYPX4)
+        export AWS_SECRET_ACCESS_KEY=$(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)
+        
+       aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 160885281963.dkr.ecr.us-east-1.amazonaws.com
+       docker build -t rakeshecr .
+       docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+       docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+
+        docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:${NEW_VERSION}
+  #  displayName: 'Build, Tag, and Push Docker Image with Updated Version'

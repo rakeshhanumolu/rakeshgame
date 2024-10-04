@@ -69,5 +69,4 @@ jobs:
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
 
-          docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:${NEW_VERSION}
-          docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:${NEW_VERSION}
+          

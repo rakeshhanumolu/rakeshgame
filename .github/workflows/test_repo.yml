@@ -30,23 +30,17 @@ jobs:
 
       - name: Set version and update version.txt
         run: |
-          # Ensure the version.txt file exists; if not, create it with a default version
           if [ ! -f version.txt ]; then
               echo "1.0.1" > version.txt
           fi
 
-          # Read the current version from version.txt
           VERSION_NUMBER=$(cat version.txt)
-          
-          # Increment the patch version
           IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
           patch=$((patch + 1))
           NEW_VERSION="${major}.${minor}.${patch}"
           
-          # Save the new version back to version.txt
           echo $NEW_VERSION > version.txt
           
-          # Use the new version for Docker tagging
           echo "Using version: $NEW_VERSION"
           echo "New version saved in version.txt: $NEW_VERSION"
         shell: bash
@@ -64,11 +58,14 @@ jobs:
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
 
+      - name: Save Docker image as tar
+        run: |
+          docker save -o rakeshecr.tar rakeshecr:latest
+          echo "Docker image saved as rakeshecr.tar"
+
       - name: Upload Docker image to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv/rakeshecr.tar || { echo "Upload failed"; exit 1; }
-          chmod +x upload_script.sh
-
+          aws s3 cp rakeshecr.tar s3://bhairavatv/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar || { echo "Upload failed"; exit 1; }

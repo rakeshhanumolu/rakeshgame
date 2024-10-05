@@ -18,26 +18,40 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
+      - name: Maven Build
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
       - name: Build with Maven
         run: |
           mvn test package
           echo "Maven build and tests complete."
-          
+
       - name: List build directory contents
         run: |
           echo "Listing the build directory contents..."
           ls -R $(pwd)
-          
+
       - name: Set version and update version.txt
         run: |
+          # Ensure the version.txt file exists; if not, create it with a default version
           if [ ! -f version.txt ]; then
               echo "1.0.1" > version.txt
           fi
+
+          # Read the current version from version.txt
           VERSION_NUMBER=$(cat version.txt)
+          
+          # Increment the patch version
           IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
           patch=$((patch + 1))
           NEW_VERSION="${major}.${minor}.${patch}"
+          
+          # Save the new version back to version.txt
           echo $NEW_VERSION > version.txt
+          
+          # Use the new version for Docker tagging
           echo "Using version: $NEW_VERSION"
           echo "New version saved in version.txt: $NEW_VERSION"
         shell: bash
@@ -48,11 +62,10 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 160885281963.dkr.ecr.us-east-1.amazonaws.com
-          
+
       - name: Build, tag, and push Docker image
         run: |
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-          docker save -o rakeshecr_latest.tar rakeshecr:latest
-          aws s3 cp rakeshecr_latest.tar s3://bhairavatv/rakeshecr_latest.tar
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+              

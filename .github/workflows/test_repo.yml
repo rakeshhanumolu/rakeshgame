@@ -70,3 +70,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws s3 cp rakeshecr.tar s3://bhairavatv/rakeshecr.tar || { echo "Upload failed"; exit 1; }
+          chmod +x upload_script.sh
+

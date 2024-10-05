@@ -68,6 +68,5 @@ jobs:
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-          aws s3 cp target/your-artifact.jar s3://your-s3-bucket-name/path/to/artifacts/ --region us-east-1
-        
-          
+          aws s3 cp target/your-artifact.jar s3://bhairavatv/path/to/artifacts/ --region us-east-1
+

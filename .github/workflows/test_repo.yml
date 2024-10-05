@@ -61,15 +61,16 @@ jobs:
         run: |
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+          aws s3 cp rakeshecr_latest.tar s3://bhairavatv/rakeshecr_latest.tar
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           
-      - name: Save Docker image as tar file
-        run: |
-          docker save rakeshecr:latest -o rakeshecr_latest.tar
+      # - name: Save Docker image as tar file
+      #   run: |
+      #     docker save rakeshecr:latest -o rakeshecr_latest.tar
 
-      - name: Copy Docker image to S3 bucket
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          aws s3 cp rakeshecr_latest.tar s3://bhairavatv/rakeshecr_latest.tar
+      # - name: Copy Docker image to S3 bucket
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #   run: |
+      #     aws s3 cp rakeshecr_latest.tar s3://bhairavatv/rakeshecr_latest.tar

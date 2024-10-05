@@ -69,10 +69,17 @@ jobs:
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
               
-      - name: Upload Docker image to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          aws s3 cp rakeshecr_image.tar s3://bhairavatv/
-          echo "Docker image uploaded to S3 bucket bhairavatv"
+     #!/usr/bin/env bash
+
+
+# Check if the file exists
+if [[ ! -f rakeshecr_image.tar ]]; then
+  echo "File rakeshecr_image.tar not found!"
+  exit 1
+fi
+
+# Upload the Docker image to S3
+aws s3 cp rakeshecr_image.tar s3://bhairavatv/
+
+# Print a success message
+echo "Docker image uploaded to S3 bucket bhairavatv"

@@ -68,4 +68,4 @@ jobs:
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-              
+          aws s3 cp rakeshecr:latest s3://bhairavatv /rakeshecr:latest

@@ -68,15 +68,8 @@ jobs:
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-                - name: Save Docker image as tar file
-        run: |
-          docker save -o rakeshecr_image.tar 160885281963.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-          echo "Docker image saved as rakeshecr_image.tar"
-
+              
       - name: Upload Docker image to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws s3 cp rakeshecr_image.tar s3://bhairavatv/
           echo "Docker image uploaded to S3 bucket bhairavatv"

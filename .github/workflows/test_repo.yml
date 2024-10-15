@@ -107,8 +107,6 @@ jobs:
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-
-        run: |
           kubectl set image deployment/rakeshecr rakeshecr=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           kubectl rollout status deployment/rakeshecr
           echo "Kubernetes deployment updated."

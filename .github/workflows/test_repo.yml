@@ -52,6 +52,15 @@ jobs:
 
                 - name: Set up KUBECONFIG
 
-          mkdir -p ~/.kube
-          echo "***" | base64 --decode > ~/.kube/config
-          chmod 600 ~/.kube/config
+          setup_kube_config:                          # Job name
+
+      - name: Set up kube config
+        run: |
+          mkdir -p ~/.kube                     # Step 1: Create the .kube directory
+          echo "***" | base64 --decode > ~/.kube/config  # Step 2: Decode and write to config
+          chmod 600 ~/.kube/config             # Step 3: Set permissions
+        shell: /usr/bin/bash -e {0}            # Specify the shell
+        env:
+          JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.24-8/x64
+          JAVA_HOME_11_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.24-8/x64
+  # Other existing jobs can be placed here

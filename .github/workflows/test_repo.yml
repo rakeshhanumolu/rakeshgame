@@ -65,12 +65,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Install AWS CLI and kubectl
-        run: |
-          curl "https://d1wni0z3s2f9g7.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-          sudo apt-get install -y kubectl
+      - name: Install AWS CLI using apt
+         run: |
+        sudo apt-get update
+       sudo apt-get install -y awscli
+        aws --version  # Verify the installation
 
       - name: Download Docker image from S3
         env:

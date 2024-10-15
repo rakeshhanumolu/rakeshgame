@@ -111,10 +111,11 @@ jobs:
   run: |
     terraform init
     terraform apply -auto-approve
-    aws eks update-kubeconfig --name your-cluster-name --region us-east-1
-
-- name: Deploy to EKS
+    
+   - name: Update Kubernetes deployment
   run: |
-    kubectl apply -f deployment.yaml  # Make sure your Kubernetes deployment YAML is set up
+    aws eks update-kubeconfig --name my-cluster --region us-east-1
+    kubectl set image deployment/<rakesh> <bhairava>=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:${{ steps.set-version.outputs.NEW_VERSION }}
+
 
     

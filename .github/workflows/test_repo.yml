@@ -44,7 +44,7 @@ jobs:
           echo "Using version: $NEW_VERSION"
           echo "New version saved in version.txt: $NEW_VERSION"
           
-          echo "::set-output name=NEW_VERSION::$NEW_VERSION"
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
         shell: bash
 
       - name: Login to AWS ECR
@@ -70,12 +70,34 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar --region us-east-1
+          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ env.NEW_VERSION }}.tar --region us-east-1
 
-      - name: Create EKS Cluster
+      - name: Install AWS CLI and kubectl
+        run: |
+          curl "https://d1wni0z3s2f9g7.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+          sudo apt-get install -y kubectl
+
+      - name: Download Docker image from S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          terraform init
-          terraform apply -auto-approve
+          aws s3 cp s3://bhairavatv1/rakeshecr_${{ env.NEW_VERSION }}.tar ./rakeshecr.tar --region us-east-1
+          echo "Docker image downloaded from S3."
+
+      - name: Load Docker image
+        run: |
+          docker load -i rakeshecr.tar
+          echo "Docker image loaded."
+
+      - name: Update Kubernetes deployment
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}  # You may need to set this secret
+        run: |
+          kubectl set image deployment/rakeshecr rakeshecr=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+          kubectl rollout status deployment/rakeshecr
+          echo "Kubernetes deployment updated."

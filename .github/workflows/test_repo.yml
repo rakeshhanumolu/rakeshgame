@@ -1,5 +1,4 @@
-
-name: Build rakesh
+name: Build and Deploy to EKS
 
 on:
   push:
@@ -8,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # You can use `ubuntu-latest` if you don't have a self-hosted runner
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,12 +22,14 @@ jobs:
         run: |
           mvn test package
           echo "Maven build and tests complete."
+
       - name: List build directory contents
         run: |
           echo "Listing the build directory contents..."
           ls -R $(pwd)
+
       - name: Set version and update version.txt
-        id: set-version  # Set an ID to reference in later steps
+        id: set-version
         run: |
           if [ ! -f version.txt ]; then
               echo "1.0.1" > version.txt
@@ -43,7 +44,6 @@ jobs:
           echo "Using version: $NEW_VERSION"
           echo "New version saved in version.txt: $NEW_VERSION"
           
-          # Output the new version to be used in subsequent steps
           echo "::set-output name=NEW_VERSION::$NEW_VERSION"
         shell: bash
 
@@ -53,199 +53,29 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 825765405225.dkr.ecr.us-east-1.amazonaws.com
+
       - name: Build, tag, and push Docker image
         run: |
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+
       - name: Save Docker image as tar
         run: |
           docker save -o rakeshecr.tar rakeshecr:latest
           echo "Docker image saved as rakeshecr.tar"
+
       - name: Upload Docker image to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_1.0.2.tar --region us-east-1
-## to create cluster code
+          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar --region us-east-1
 
-provider "aws" {
-
-}
-
-provider "kubernetes" {
-  host                   = aws_eks_cluster.my_cluster.endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.my_cluster.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.cluster.token
-
-}
-
-data "aws_eks_cluster_auth" "cluster" {
-  name = aws_eks_cluster.my_cluster.name
-}
-
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "myAmazonEKSClusterRoles1"
-  
-  assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "eks.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_role_attachment" {
-  role       = aws_iam_role.eks_cluster_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-resource "aws_eks_cluster" "my_cluster" {
-  name     = "my-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
-  version  = "1.28"  # Update to the desired EKS version
-
-  vpc_config {
-    subnet_ids = ["subnet-04b666e86c1623f57", "subnet-0a4317628ed7a618b"]
-  }
-}
-
-# EBS CSI Driver IAM Role
-resource "aws_iam_role" "ebs_csi_driver_role" {
-  name = "AmazonEKS_EBS_CSI_DriverRole"
-
-  assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "ec2.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
-  role       = aws_iam_role.ebs_csi_driver_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
-
-# EBS CSI Driver DaemonSet
-resource "kubernetes_daemonset" "ebs_csi_driver" {
-  metadata {
-    name      = "ebs-csi-driver"
-    namespace = "kube-system"
-  }
-
-  spec {
-    selector {
-      match_labels = {
-        "app" = "ebs-csi-driver"
-      }
-    }
-
-    template {
-      metadata {
-        labels = {
-          "app" = "ebs-csi-driver"
-        }
-      }
-
-      spec {
-        container {
-          name  = "ebs-csi-driver"
-          image = "amazon/aws-ebs-csi-driver:latest"
-
-          volume_mount {
-            name       = "socket-dir"
-            mount_path = "/csi"
-          }
-        }
-
-        volume {
-          name = "socket-dir"
-
-          empty_dir {
-            medium = "Memory"
-          }
-        }
-      }
-    }
-  }
-}
-
-# Outputs
-output "cluster_name" {
-  value = aws_eks_cluster.my_cluster.name
-}
-
-output "cluster_endpoint" {
-  value = aws_eks_cluster.my_cluster.endpoint
-}
-
-output "cluster_certificate_authority" {
-  value = aws_eks_cluster.my_cluster.certificate_authority[0].data
-}
-resource "aws_eks_addon" "coredns" {
-  cluster_name = aws_eks_cluster.my_cluster.name
-  addon_name   = "coredns"
-
-
-}
-
-# IAM Role for Node Group
-resource "aws_iam_role" "eks_node_group_role" {
-  name = "eks-node-group-role"
-  
-  assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "ec2.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_group_worker_policy_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_group_cni_policy_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_group_registry_read_only_policy_attachment" {
-  role       = aws_iam_role.eks_node_group_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-# EKS Node Group
-resource "aws_eks_node_group" "my_node_group" {
-  cluster_name    = aws_eks_cluster.my_cluster.name  # Replace with your EKS cluster name
-  node_group_name = "my-node-group"
-  node_role_arn   = aws_iam_role.eks_node_group_role.arn
-  subnet_ids      = ["subnet-04b666e86c1623f57", "subnet-0a4317628ed7a618b"]  # Replace with your subnet IDs
-  instance_types  = ["t3.medium"]  # Update instance type as needed
-  scaling_config {
-    desired_size = 2
-    max_size     = 3
-    min_size     = 1
-  }
-}
+      - name: Create EKS Cluster
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform init
+          terraform apply -auto-approve

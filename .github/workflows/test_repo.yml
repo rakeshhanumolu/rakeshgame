@@ -55,11 +55,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 825765405225.dkr.ecr.us-east-1.amazonaws.com
+
       - name: Build, tag, and push Docker image
         run: |
           docker build -t rakeshecr .
           docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+
       - name: Save Docker image as tar
         run: |
           docker save -o rakeshecr.tar rakeshecr:latest
@@ -72,3 +74,8 @@ jobs:
         run: |
           aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_1.0.2.tar --region us-east-1
 
+      - name: Deploy to EKS
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          kubectl apply -f deployment.yaml

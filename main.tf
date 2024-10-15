@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"  # Set your preferred AWS region
+  region = "us-east-2"  # Set your preferred AWS region
 }
 
 resource "aws_eks_cluster" "my_cluster" {

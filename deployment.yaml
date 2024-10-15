@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rakesh-deployment
+  labels:
+    app: rakesh
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rakesh
+  template:
+    metadata:
+      labels:
+        app: rakesh
+    spec:
+      containers:
+      - name: rakesh
+        image: 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+        ports:
+        - containerPort: 8080  # Replace with the port your application listens on
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rakesh-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080  # Replace with the port your application listens on
+  selector:
+    app: rakesh

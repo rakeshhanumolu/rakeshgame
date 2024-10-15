@@ -23,11 +23,6 @@ jobs:
           mvn test package
           echo "Maven build and tests complete."
 
-      - name: List build directory contents
-        run: |
-          echo "Listing the build directory contents..."
-          ls -R $(pwd)
-
       - name: Set version and update version.txt
         id: set-version
         run: |
@@ -38,14 +33,8 @@ jobs:
           IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
           patch=$((patch + 1))
           NEW_VERSION="${major}.${minor}.${patch}"
-          
           echo $NEW_VERSION > version.txt
-          
-          echo "Using version: $NEW_VERSION"
-          echo "New version saved in version.txt: $NEW_VERSION"
-          
           echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_ENV
-        shell: bash
 
       - name: Login to AWS ECR
         env:
@@ -72,6 +61,10 @@ jobs:
         run: |
           aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ env.NEW_VERSION }}.tar --region us-east-1
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Install AWS CLI and kubectl
         run: |
           curl "https://d1wni0z3s2f9g7.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -87,35 +80,17 @@ jobs:
           aws s3 cp s3://bhairavatv1/rakeshecr_${{ env.NEW_VERSION }}.tar ./rakeshecr.tar --region us-east-1
           echo "Docker image downloaded from S3."
 
-      - name: Load Docker image
+      - name: Load Docker image on EKS node group
         run: |
           docker load -i rakeshecr.tar
-          echo "Docker image loaded."
+          echo "Docker image loaded on node group."
 
       - name: Update Kubernetes deployment
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}  # You may need to set this secret
-      - name: Install kubectl
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}  # Kubeconfig file for EKS access
         run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
           kubectl set image deployment/rakeshecr rakeshecr=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           kubectl rollout status deployment/rakeshecr
           echo "Kubernetes deployment updated."
-
-  env:
-    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  run: |
-    terraform init
-    terraform apply -auto-approve
-    
-  
-  run: |
-    aws eks update-kubeconfig --name my-cluster --region us-east-1
-    kubectl set image deployment/<rakesh> <bhairava>=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:${{ steps.set-version.outputs.NEW_VERSION }}
-
-
-    

@@ -97,6 +97,17 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           KUBECONFIG: ${{ secrets.KUBECONFIG }}  # You may need to set this secret
+                
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
         run: |
           kubectl set image deployment/rakeshecr rakeshecr=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           kubectl rollout status deployment/rakeshecr

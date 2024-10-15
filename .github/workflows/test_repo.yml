@@ -101,7 +101,6 @@ jobs:
           #!/bin/bash
 
 echo "kubectl installation started"
-sudo yum update -y
 curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.3/2024-04-19/bin/linux/amd64/kubectl
 curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.3/2024-04-19/bin/linux/amd64/kubectl.sha256
 sha256sum -c kubectl.sha256

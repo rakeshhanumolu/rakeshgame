@@ -89,7 +89,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-            aws s3 cp s3://bhairavatv1/rakeshecr_${{ needs.build.outputs.NEW_VERSION }}.tar ./rakeshecr.tar --region us-east-2
+            aws s3 cp s3://bhairavatv1/rakeshecr_${VERSION}.tar ./rakeshecr.tar --region us-east-2
+
 
 
           

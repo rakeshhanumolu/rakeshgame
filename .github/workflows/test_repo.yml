@@ -70,7 +70,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar --region us-east-1
+          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar --region us-east-2
 
       - name: Create EKS Cluster
         env:

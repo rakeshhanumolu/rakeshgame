@@ -89,12 +89,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp s3://bhairavatv1/rakeshecr_${{ needs.build.outputs.NEW_VERSION }}.tar rakeshecr_1.0.2.tar  --region us-east-1
+          aws s3 cp s3://bhairavatv1/rakeshecr_${{ needs.build.outputs.NEW_VERSION }}.tar rakeshecr_1.0.2.tar --region us-east-1
           
       - name: Load Docker image
         run: |
-          docker load -i rakeshecr_1.0.2.tar 
-          echo "Docker image loaded from rakeshecr_1.0.2.tar "
+          docker load -i rakeshecr_1.0.2.tar
+          echo "Docker image loaded from rakeshecr_1.0.2.tar"
 
       - name: Setup kubectl for EKS
         uses: aws-actions/configure-aws-credentials@v1

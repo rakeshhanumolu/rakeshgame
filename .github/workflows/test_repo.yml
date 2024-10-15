@@ -99,6 +99,7 @@ jobs:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}  # You may need to set this secret
                 
         run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           wget "https://d1wni0z3s2f9g7.cloudfront.net/awscli-exe-linux-x86_64.zip" -O "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install

@@ -52,7 +52,6 @@ jobs:
 
                 - name: Set up KUBECONFIG
 
-          mkdir -p ~/.kube  # Create .kube directory if it doesn't exist
-          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+          mkdir -p ~/.kube
+          echo "***" | base64 --decode > ~/.kube/config
           chmod 600 ~/.kube/config
-

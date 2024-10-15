@@ -75,9 +75,9 @@ jobs:
           terraform apply -auto-approve
           name: Build and Deploy to EKS
 
- deploy:
+
     needs: build
-    runs-on: ubuntu-latest
+    
     steps:
       - name: Download Docker image from S3
         env:

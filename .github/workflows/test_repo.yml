@@ -75,76 +75,36 @@ jobs:
           terraform apply -auto-approve
           name: Build and Deploy to EKS
 
-on:
-  push:
-    branches:
-      - main  # Trigger the workflow on push to the main branch
-
-jobs:
-  build:
+ deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Download Docker image from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 cp s3://bhairavatv1/rakeshecr_${{ needs.build.outputs.NEW_VERSION }}.tar rakeshecr.tar --region us-east-1
+          
+      - name: Load Docker image
+        run: |
+          docker load -i rakeshecr_1.0.2.tar
+          echo "Docker image loaded from rakeshecr_1.0.2.tar"
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
+      - name: Setup kubectl for EKS
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          java-version: '11'
-          distribution: 'temurin'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - name: Build with Maven
+      - name: Update kubeconfig for EKS cluster
         run: |
-          mvn test package
-          echo "Maven build and tests complete."
-      - name: List build directory contents
-        run: |
-          echo "Listing the build directory contents..."
-          ls -R $(pwd)
-      - name: Set version and update version.txt
-        id: set-version
-        run: |
-          if [ ! -f version.txt ]; then
-              echo "1.0.1" > version.txt
-          fi
-          VERSION_NUMBER=$(cat version.txt)
-          IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
-          patch=$((patch + 1))
-          NEW_VERSION="${major}.${minor}.${patch}"
-          
-          echo $NEW_VERSION > version.txt
-          
-          echo "Using version: $NEW_VERSION"
-          echo "New version saved in version.txt: $NEW_VERSION"
-          
-          echo "::set-output name=NEW_VERSION::$NEW_VERSION"
-        shell: bash
+          aws eks update-kubeconfig --name my-cluster --region us-east-1
+          kubectl get nodes
 
-      - name: Login to AWS ECR
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Deploy Docker image to EKS
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 825765405225.dkr.ecr.us-east-1.amazonaws.com
-      - name: Build, tag, and push Docker image
-        run: |
-          docker build -t rakeshecr .
-          docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-          docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-      - name: Save Docker image as tar
-        run: |
-          docker save -o rakeshecr.tar rakeshecr:latest
-          echo "Docker image saved as rakeshecr.tar"
-      - name: Upload Docker image to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_${{ steps.set-version.outputs.NEW_VERSION }}.tar --region us-east-1
-      - name: Create EKS Cluster
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
+          kubectl create deployment rakesh-app --image=825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
+          kubectl expose deployment rakesh-app --type=LoadBalancer --port=80
+          kubectl get svc

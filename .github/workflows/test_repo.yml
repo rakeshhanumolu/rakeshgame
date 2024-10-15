@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install AWS CLI using apt
-         run: |
+         
         sudo apt-get update
        sudo apt-get install -y awscli
         aws --version  # Verify the installation

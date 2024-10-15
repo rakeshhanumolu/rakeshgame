@@ -1,66 +1,20 @@
-name: Build and Deploy to EKS
+name: CI Workflow
 
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  
+  setup_kube_config:                              # Job name
+    runs-on: ubuntu-latest                        # Specify the environment
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'temurin'
-
-      - name: Build with Maven
-        run: |
-          mvn test package
-          echo "Maven build and tests complete."
-
-      - name: Login to AWS ECR
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 825765405225.dkr.ecr.us-east-1.amazonaws.com
-
-      - name: Build, tag, and push Docker image
-        run: |
-          docker build -t rakeshecr .
-          docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-          docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
-
-      - name: Set up KUBECONFIG
-        run: |
-          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
-          chmod 600 ~/.kube/config
-
-      - name: Check kubectl context
-        run: |
-          kubectl config get-contexts
-          kubectl config current-context
-
-      - name: Deploy to EKS
-        run: |
-          kubectl apply -f deployment.yaml --validate=false
-
-                - name: Set up KUBECONFIG
-
-          setup_kube_config:                          # Job name
-
       - name: Set up kube config
         run: |
-          mkdir -p ~/.kube                     # Step 1: Create the .kube directory
+          mkdir -p ~/.kube                         # Step 1: Create the .kube directory
           echo "***" | base64 --decode > ~/.kube/config  # Step 2: Decode and write to config
-          chmod 600 ~/.kube/config             # Step 3: Set permissions
-        shell: /usr/bin/bash -e {0}            # Specify the shell
+          chmod 600 ~/.kube/config                 # Step 3: Set permissions
+        shell: /usr/bin/bash -e {0}                # Specify the shell
         env:
           JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.24-8/x64
           JAVA_HOME_11_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/11.0.24-8/x64
-  # Other existing jobs can be placed here

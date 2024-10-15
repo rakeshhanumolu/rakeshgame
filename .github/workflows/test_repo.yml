@@ -1,13 +1,13 @@
-name: Build rakesh
+name: Build and Deploy to EKS
 
 on:
   push:
     branches:
-      - main  # Trigger the workflow on push to the main branch
+      - main 
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # You can use `ubuntu-latest` if you don't have a self-hosted runner
+    runs-on: ubuntu-latest  
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,32 +23,6 @@ jobs:
           mvn test package
           echo "Maven build and tests complete."
 
-      - name: List build directory contents
-        run: |
-          echo "Listing the build directory contents..."
-          ls -R $(pwd)
-
-      - name: Set version and update version.txt
-        id: set-version  # Set an ID to reference in later steps
-        run: |
-          if [ ! -f version.txt ]; then
-              echo "1.0.1" > version.txt
-          fi
-
-          VERSION_NUMBER=$(cat version.txt)
-          IFS='.' read -r major minor patch <<< "$VERSION_NUMBER"
-          patch=$((patch + 1))
-          NEW_VERSION="${major}.${minor}.${patch}"
-          
-          echo $NEW_VERSION > version.txt
-          
-          echo "Using version: $NEW_VERSION"
-          echo "New version saved in version.txt: $NEW_VERSION"
-          
-          # Output the new version to be used in subsequent steps
-          echo "::set-output name=NEW_VERSION::$NEW_VERSION"
-        shell: bash
-
       - name: Login to AWS ECR
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -62,20 +36,16 @@ jobs:
           docker tag rakeshecr:latest 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
           docker push 825765405225.dkr.ecr.us-east-1.amazonaws.com/rakeshecr:latest
 
-      - name: Save Docker image as tar
+      - name: Set up KUBECONFIG
         run: |
-          docker save -o rakeshecr.tar rakeshecr:latest
-          echo "Docker image saved as rakeshecr.tar"
+          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+          chmod 600 ~/.kube/config
 
-      - name: Upload Docker image to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Check kubectl context
         run: |
-          aws s3 cp rakeshecr.tar s3://bhairavatv1/rakeshecr_1.0.2.tar --region us-east-1
+          kubectl config get-contexts
+          kubectl config current-context
 
       - name: Deploy to EKS
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
-          kubectl apply -f deployment.yaml
+          kubectl apply -f deployment.yaml --validate=false
